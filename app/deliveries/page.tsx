@@ -62,6 +62,13 @@ const ChevronLeftIcon = () => (
         <polyline points="15 18 9 12 15 6" />
     </svg>
 );
+// ── New icon for summary card date chip (Feature 2) ──────────────────────────
+const CalendarIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+);
 
 // ── Farm Landscape SVG Background (same as home dashboard) ───────────────────
 const FarmLandscape = () => (
@@ -100,8 +107,16 @@ export default function DeliveriesPage() {
     const [todayDeliveries, setTodayDeliveries] = useState<any>({});
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [loaded, setLoaded] = useState(false);
+    // ── Feature 1: loading flag while a bulk (mark-all) action is running ─────
+    const [bulkLoading, setBulkLoading] = useState<"delivered" | "not_collected" | null>(null);
 
     const today = new Date().toISOString().split("T")[0];
+    // Friendly date string for the summary card (Feature 2) — purely cosmetic
+    const formattedToday = new Date().toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
 
     const fetchCustomers = async () => {
         const { data } = await supabase
@@ -196,6 +211,95 @@ export default function DeliveriesPage() {
         fetchTodayDeliveries();
     };
 
+    // ── FEATURE 1: Mark All Delivered ──────────────────────────────────────────
+    // Marks both morning & evening as "delivered" for every active customer,
+    // today. Creates a delivery row if one doesn't exist yet for today.
+    const markAllDelivered = async () => {
+        if (customers.length === 0) return;
+        setBulkLoading("delivered");
+        try {
+            await Promise.all(
+                customers.map(async (customer) => {
+                    const existing = todayDeliveries[customer.id];
+                    const totalLiters =
+                        Number(customer.morning_liters || 0) + Number(customer.evening_liters || 0);
+                    const totalAmount = totalLiters * Number(customer.price_per_liter || 0);
+
+                    if (!existing) {
+                        await supabase.from("deliveries").insert([
+                            {
+                                customer_id: customer.id,
+                                delivery_date: today,
+                                morning_liters: customer.morning_liters,
+                                evening_liters: customer.evening_liters,
+                                morning_status: "delivered",
+                                evening_status: "delivered",
+                                total_liters: totalLiters,
+                                total_amount: totalAmount,
+                            },
+                        ]);
+                    } else {
+                        await supabase
+                            .from("deliveries")
+                            .update({
+                                morning_status: "delivered",
+                                evening_status: "delivered",
+                                total_liters: totalLiters,
+                                total_amount: totalAmount,
+                            })
+                            .eq("id", existing.id);
+                    }
+                })
+            );
+            await fetchTodayDeliveries();
+        } finally {
+            setBulkLoading(null);
+        }
+    };
+
+    // ── FEATURE 1: Mark All Not Collected ──────────────────────────────────────
+    // Marks both morning & evening as "not_collected" for every active
+    // customer, today. Creates a delivery row if one doesn't exist yet.
+    const markAllNotCollected = async () => {
+        if (customers.length === 0) return;
+        setBulkLoading("not_collected");
+        try {
+            await Promise.all(
+                customers.map(async (customer) => {
+                    const existing = todayDeliveries[customer.id];
+
+                    if (!existing) {
+                        await supabase.from("deliveries").insert([
+                            {
+                                customer_id: customer.id,
+                                delivery_date: today,
+                                morning_liters: customer.morning_liters,
+                                evening_liters: customer.evening_liters,
+                                morning_status: "not_collected",
+                                evening_status: "not_collected",
+                                total_liters: 0,
+                                total_amount: 0,
+                            },
+                        ]);
+                    } else {
+                        await supabase
+                            .from("deliveries")
+                            .update({
+                                morning_status: "not_collected",
+                                evening_status: "not_collected",
+                                total_liters: 0,
+                                total_amount: 0,
+                            })
+                            .eq("id", existing.id);
+                    }
+                })
+            );
+            await fetchTodayDeliveries();
+        } finally {
+            setBulkLoading(null);
+        }
+    };
+
     const toggleExpand = (id: string) => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
@@ -208,38 +312,98 @@ export default function DeliveriesPage() {
     }, []);
 
     // ── Helpers to derive per-customer delivery state ─────────────────────────
-    const getStatus = (customer: any) => {
+    // getCustomerStats centralizes the math used by both the individual cards
+    // and the new Feature 2 summary card / customer-wise breakdown.
+    // Daily reset rule: if a customer has NO delivery row for "today", they are
+    // automatically treated as status = "not_collected" (old days are never
+    // touched — they simply live under their own delivery_date).
+    const getCustomerStats = (customer: any) => {
         const delivery = todayDeliveries[customer.id];
-        const hasMorning = Number(customer.morning_liters) > 0;
-        const hasEvening = Number(customer.evening_liters) > 0;
+        const morningLiters = Number(customer.morning_liters) || 0;
+        const eveningLiters = Number(customer.evening_liters) || 0;
+        const totalLiters = morningLiters + eveningLiters;
+        const price = Number(customer.price_per_liter) || 0;
 
-        const morningDone = !hasMorning || delivery?.morning_status === "delivered";
-        const eveningDone = !hasEvening || delivery?.evening_status === "delivered";
+        const hasMorning = morningLiters > 0;
+        const hasEvening = eveningLiters > 0;
 
-        if (morningDone && eveningDone) return "delivered";
-        if ((hasMorning && delivery?.morning_status === "delivered") || (hasEvening && delivery?.evening_status === "delivered")) {
-            return "partial";
+        const morningStatus = hasMorning ? delivery?.morning_status ?? (delivery ? "pending" : "not_collected") : null;
+        const eveningStatus = hasEvening ? delivery?.evening_status ?? (delivery ? "pending" : "not_collected") : null;
+
+        let deliveredLiters = 0;
+        if (hasMorning && morningStatus === "delivered") deliveredLiters += morningLiters;
+        if (hasEvening && eveningStatus === "delivered") deliveredLiters += eveningLiters;
+
+        const deliveredAmount = deliveredLiters * price;
+        const pendingAmount = (totalLiters - deliveredLiters) * price;
+
+        let status: "delivered" | "partial" | "pending" | "not_collected";
+
+        if (!delivery) {
+            status = "not_collected";
+        } else {
+            const relevantStatuses = [morningStatus, eveningStatus].filter(Boolean) as string[];
+
+            if (relevantStatuses.length === 0) {
+                status = "delivered";
+            } else if (relevantStatuses.every((s) => s === "delivered")) {
+                status = "delivered";
+            } else if (relevantStatuses.every((s) => s === "not_collected")) {
+                status = "not_collected";
+            } else if (relevantStatuses.some((s) => s === "delivered")) {
+                status = "partial";
+            } else {
+                status = "pending";
+            }
         }
-        return "pending";
+
+        return {
+            morningLiters,
+            eveningLiters,
+            totalLiters,
+            price,
+            deliveredLiters,
+            deliveredAmount,
+            pendingAmount,
+            status,
+        };
     };
+
+    const getStatus = (customer: any) => getCustomerStats(customer).status;
 
     const statusDot: Record<string, string> = {
         delivered: "bg-green-500",
         partial: "bg-amber-400",
         pending: "bg-gray-300",
+        not_collected: "bg-red-400",
     };
     const statusLabel: Record<string, string> = {
         delivered: "Delivered",
         partial: "Partial",
         pending: "Pending",
+        not_collected: "Not Collected",
     };
     const statusText: Record<string, string> = {
         delivered: "text-green-600",
         partial: "text-amber-600",
         pending: "text-gray-400",
+        not_collected: "text-red-500",
     };
 
     const deliveredCount = customers.filter((c) => getStatus(c) === "delivered").length;
+
+    // ── FEATURE 2: Aggregate totals for the summary card ───────────────────────
+    const summaryStats = customers.reduce(
+        (acc, customer) => {
+            const s = getCustomerStats(customer);
+            acc.totalLitersPlanned += s.totalLiters;
+            acc.totalLitersDelivered += s.deliveredLiters;
+            acc.totalRevenue += s.deliveredAmount;
+            acc.totalPending += s.pendingAmount;
+            return acc;
+        },
+        { totalLitersPlanned: 0, totalLitersDelivered: 0, totalRevenue: 0, totalPending: 0 }
+    );
 
     return (
         <div className="min-h-screen bg-white font-sans antialiased">
@@ -275,6 +439,101 @@ export default function DeliveriesPage() {
 
             {/* ── Scrollable Content ── */}
             <main className="relative z-10 bg-white rounded-t-3xl -mt-3 px-4 pt-5 pb-10 min-h-screen">
+
+                {/* ── FEATURE 1: Top Quick Delivery Toggle Section ── */}
+                <div className="mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                        Quick Actions
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={markAllDelivered}
+                            disabled={bulkLoading !== null || customers.length === 0}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-green-600 text-white active:bg-green-700 disabled:opacity-60 transition-colors duration-100"
+                        >
+                            <CheckIcon />
+                            {bulkLoading === "delivered" ? "Marking..." : "Mark All Delivered"}
+                        </button>
+                        <button
+                            onClick={markAllNotCollected}
+                            disabled={bulkLoading !== null || customers.length === 0}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-500 border border-red-200 active:bg-red-100 disabled:opacity-60 transition-colors duration-100"
+                        >
+                            <UndoIcon />
+                            {bulkLoading === "not_collected" ? "Marking..." : "Mark All Not Collected"}
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── FEATURE 2: Full Daily Delivery Summary Card ── */}
+                <div className="mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-sm font-bold text-gray-900">Today&apos;s Delivery Summary</h2>
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium text-gray-400">
+                            <CalendarIcon /> {formattedToday}
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-[11px] text-gray-400 font-medium">Total Customers</p>
+                            <p className="text-base font-bold text-gray-900">{customers.length}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-[11px] text-gray-400 font-medium">Liters Planned</p>
+                            <p className="text-base font-bold text-gray-900">{summaryStats.totalLitersPlanned}L</p>
+                        </div>
+                        <div className="bg-green-50 rounded-xl p-3">
+                            <p className="text-[11px] text-green-500 font-medium">Liters Delivered</p>
+                            <p className="text-base font-bold text-green-700">{summaryStats.totalLitersDelivered}L</p>
+                        </div>
+                        <div className="bg-amber-50 rounded-xl p-3">
+                            <p className="text-[11px] text-amber-500 font-medium">Revenue Collected</p>
+                            <p className="text-base font-bold text-amber-700">₹{summaryStats.totalRevenue.toFixed(0)}</p>
+                        </div>
+                        <div className="bg-red-50 rounded-xl p-3 col-span-2">
+                            <p className="text-[11px] text-red-400 font-medium">Pending Amount</p>
+                            <p className="text-base font-bold text-red-600">₹{summaryStats.totalPending.toFixed(0)}</p>
+                        </div>
+                    </div>
+
+                    {/* Customer-wise breakdown */}
+                    <div className="border-t border-gray-100 pt-3">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                            Customer-wise Breakdown
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {customers.map((customer) => {
+                                const stats = getCustomerStats(customer);
+                                return (
+                                    <div
+                                        key={`summary-${customer.id}`}
+                                        className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5"
+                                    >
+                                        <span className={`flex-shrink-0 w-2 h-2 rounded-full ${statusDot[stats.status]}`} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-gray-900 truncate">{customer.name}</p>
+                                            <p className="text-[10px] text-gray-400">
+                                                {stats.morningLiters}L morning · {stats.eveningLiters}L evening · {stats.totalLiters}L total · ₹{stats.price}/L
+                                            </p>
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                            <p className="text-xs font-bold text-gray-900">₹{stats.deliveredAmount.toFixed(0)}</p>
+                                            <p className={`text-[10px] font-semibold ${statusText[stats.status]}`}>
+                                                {statusLabel[stats.status]}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {customers.length === 0 && (
+                                <p className="text-xs text-gray-400 text-center py-3">No active customers yet.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex flex-col gap-3">
                     {customers.map((customer, i) => {
                         const delivery = todayDeliveries[customer.id];

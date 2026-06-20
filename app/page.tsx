@@ -175,6 +175,7 @@ export default function DashboardPage() {
   // ── Delivery Mode state ───────────────────────────────────────────────────
   const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatusRow | null>(null);
   const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"on" | "off" | null>(null);
 
   // Close popup when clicking outside (checks both bell and popup)
   useEffect(() => {
@@ -530,14 +531,21 @@ export default function DashboardPage() {
                 </div>
               </div>
               <button
-                onClick={toggleDelivery}
+                onClick={() => setConfirmAction(deliveryStatus?.is_delivery_started ? "off" : "on")}
                 disabled={!deliveryStatus || deliveryLoading}
-                className={`px-5 py-2 rounded-full font-semibold text-sm transition-colors duration-150 disabled:opacity-50 ${deliveryStatus?.is_delivery_started
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-700"
+                aria-label="Toggle delivery mode"
+                className={`relative w-24 h-10 rounded-full px-3 flex items-center transition-colors duration-300 disabled:opacity-50 ${deliveryStatus?.is_delivery_started
+                    ? "bg-green-500 justify-start"
+                    : "bg-red-500 justify-end"
                   }`}
               >
-                {deliveryStatus?.is_delivery_started ? "ON" : "OFF"}
+                <span className="text-[11px] font-bold text-white tracking-wide">
+                  {deliveryStatus?.is_delivery_started ? "ON" : "OFF"}
+                </span>
+                <span
+                  className={`absolute top-1 left-1 w-8 h-8 rounded-full shadow-md bg-gradient-to-br from-white to-gray-200 transition-transform duration-300 ${deliveryStatus?.is_delivery_started ? "translate-x-[56px]" : "translate-x-0"
+                    }`}
+                />
               </button>
             </div>
           </div>
@@ -656,6 +664,42 @@ export default function DashboardPage() {
         </div>
         <div className="h-1 bg-white" />
       </nav>
+
+      {/* ── Delivery Mode Confirmation Modal ── */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl">
+            <p className="font-bold text-gray-800 text-base mb-1">
+              {confirmAction === "on" ? "Turn on Delivery Mode?" : "Turn off Delivery Mode?"}
+            </p>
+            <p className="text-sm text-gray-500 mb-5">
+              {confirmAction === "on"
+                ? "Every customer will see a banner that their milk is on the way."
+                : "The delivery banner will be hidden from every customer."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmAction(null)}
+                disabled={deliveryLoading}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await toggleDelivery();
+                  setConfirmAction(null);
+                }}
+                disabled={deliveryLoading}
+                className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm disabled:opacity-50 ${confirmAction === "on" ? "bg-green-500" : "bg-red-500"
+                  }`}
+              >
+                {deliveryLoading ? "..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

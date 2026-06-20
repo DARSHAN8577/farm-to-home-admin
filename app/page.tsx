@@ -103,33 +103,106 @@ const XIcon = () => (
 
 // ── Farm Landscape SVG Background ────────────────────────────────────────────
 const FarmLandscape = () => (
-  <svg viewBox="0 0 390 120" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="xMidYMax meet">
+  <svg viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="xMidYMax meet">
     <defs>
       <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#d1fae5" />
         <stop offset="100%" stopColor="#a7f3d0" />
       </linearGradient>
+
+      {/* Reusable cow shapes, drawn once and placed with <use> below */}
+      <g id="cowGraze">
+        <ellipse cx="70" cy="45" rx="38" ry="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.4" />
+        <path d="M42,32 q14,-10 28,0 q4,10 -9,14 q-19,5 -19,-14 z" fill="#111827" />
+        <ellipse cx="95" cy="50" rx="11" ry="8" fill="#111827" />
+        <path d="M45,30 C26,33 11,46 9,66 C8,76 16,80 26,78 C36,75 38,64 35,50 C33,41 40,34 45,30 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="1.2" />
+        <ellipse cx="29" cy="58" rx="6" ry="8" fill="#111827" />
+        <ellipse cx="14" cy="73" rx="6" ry="4" fill="#111827" />
+        <ellipse cx="21" cy="61" rx="4.5" ry="7" fill="#ffffff" stroke="#1f2937" strokeWidth="1" transform="rotate(-25 21 61)" />
+        <rect x="25" y="63" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="45" y="64" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="85" y="64" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="100" y="62" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <path d="M105,42 q16,8 11,30" stroke="#1f2937" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <ellipse cx="116" cy="74" rx="4" ry="6" fill="#1f2937" />
+      </g>
+      <g id="cowStand">
+        <ellipse cx="62" cy="48" rx="40" ry="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.4" />
+        <ellipse cx="40" cy="40" rx="11" ry="9" fill="#111827" />
+        <path d="M85,30 q15,-9 30,2 q3,11 -9,16 q-20,6 -21,-18 z" fill="#111827" />
+        <path d="M92,38 C108,32 122,37 124,50 C126,62 117,70 107,68 C97,65 91,53 92,38 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="1.2" />
+        <ellipse cx="106" cy="58" rx="6" ry="7" fill="#111827" />
+        <ellipse cx="120" cy="58" rx="5" ry="4" fill="#111827" />
+        <path d="M104,40 q-5,-10 2,-15" stroke="#e7e5e4" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        <path d="M114,38 q4,-11 11,-12" stroke="#e7e5e4" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        <ellipse cx="99" cy="44" rx="4.5" ry="7" fill="#ffffff" stroke="#1f2937" strokeWidth="1" transform="rotate(20 99 44)" />
+        <rect x="18" y="64" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="38" y="65" width="7" height="28" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="78" y="65" width="7" height="28" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <rect x="96" y="64" width="7" height="27" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" rx="2" />
+        <path d="M20,40 q-16,8 -12,30" stroke="#1f2937" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <ellipse cx="7" cy="72" rx="4" ry="6" fill="#1f2937" />
+      </g>
     </defs>
-    <rect width="390" height="120" fill="url(#skyGrad)" />
-    <ellipse cx="80" cy="115" rx="130" ry="50" fill="#6ee7b7" opacity="0.5" />
-    <ellipse cx="310" cy="118" rx="120" ry="45" fill="#6ee7b7" opacity="0.5" />
-    <ellipse cx="160" cy="125" rx="160" ry="55" fill="#34d399" opacity="0.7" />
-    <ellipse cx="350" cy="128" rx="110" ry="50" fill="#34d399" opacity="0.6" />
-    <rect x="0" y="90" width="390" height="30" fill="#10b981" opacity="0.5" />
-    <rect x="275" y="52" width="4" height="44" fill="#78716c" />
-    <line x1="277" y1="58" x2="277" y2="38" stroke="#a8a29e" strokeWidth="3" strokeLinecap="round" />
-    <line x1="277" y1="58" x2="291" y2="65" stroke="#a8a29e" strokeWidth="3" strokeLinecap="round" />
-    <line x1="277" y1="58" x2="263" y2="65" stroke="#a8a29e" strokeWidth="3" strokeLinecap="round" />
-    <circle cx="277" cy="58" r="3" fill="#57534e" />
-    <rect x="300" y="72" width="36" height="24" fill="#fef3c7" rx="2" />
-    <polygon points="298,72 336,72 318,55" fill="#f59e0b" />
-    <rect x="312" y="84" width="10" height="12" fill="#92400e" rx="1" />
-    <rect x="315" y="85" width="4" height="11" fill="#78350f" rx="0.5" />
-    <rect x="348" y="80" width="4" height="18" fill="#78716c" />
-    <ellipse cx="350" cy="76" rx="12" ry="14" fill="#16a34a" />
-    <ellipse cx="342" cy="82" rx="9" ry="11" fill="#15803d" />
-    <rect x="365" y="82" width="3" height="14" fill="#78716c" />
-    <ellipse cx="366" cy="78" rx="10" ry="12" fill="#16a34a" />
+
+    {/* Sky */}
+    <rect width="400" height="160" fill="url(#skyGrad)" />
+
+    {/* Clouds */}
+    <ellipse cx="60" cy="28" rx="22" ry="9" fill="#ffffff" opacity="0.7" />
+    <ellipse cx="80" cy="24" rx="16" ry="7" fill="#ffffff" opacity="0.7" />
+    <ellipse cx="300" cy="20" rx="20" ry="8" fill="#ffffff" opacity="0.6" />
+
+    {/* Birds */}
+    <path d="M210,30 q5,-6 10,0 q5,-6 10,0" stroke="#475569" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M225,22 q4,-5 8,0 q4,-5 8,0" stroke="#475569" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <path d="M200,18 q4,-5 8,0 q4,-5 8,0" stroke="#475569" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+
+    {/* Distant mountains */}
+    <path d="M0,75 C40,45 80,55 120,40 C160,25 200,50 240,35 C280,20 330,45 400,30 L400,90 L0,90 Z" fill="#a7d8c9" opacity="0.55" />
+
+    {/* Rolling hills */}
+    <ellipse cx="70" cy="155" rx="140" ry="55" fill="#6ee7b7" opacity="0.45" />
+    <ellipse cx="330" cy="160" rx="130" ry="50" fill="#6ee7b7" opacity="0.45" />
+    <ellipse cx="170" cy="165" rx="170" ry="60" fill="#34d399" opacity="0.65" />
+    <ellipse cx="370" cy="168" rx="120" ry="55" fill="#34d399" opacity="0.55" />
+    <rect x="0" y="125" width="400" height="35" fill="#10b981" opacity="0.45" />
+
+    {/* Large tree, top-left */}
+    <rect x="42" y="70" width="6" height="50" fill="#78716c" rx="2" />
+    <ellipse cx="45" cy="55" rx="32" ry="26" fill="#16a34a" />
+    <ellipse cx="25" cy="68" rx="22" ry="18" fill="#15803d" />
+    <ellipse cx="65" cy="68" rx="22" ry="18" fill="#15803d" />
+
+    {/* Winding path */}
+    <path d="M120,160 C145,135 110,115 140,100 C175,82 215,92 250,78 L262,84 C228,96 192,90 158,108 C132,122 158,140 138,160 Z" fill="#d9bd8e" />
+
+    {/* White picket fence near the house */}
+    {[215, 235, 255, 275, 295, 315, 335].map((x, i) => (
+      <rect key={x} x={x} y={96 - i * 0.5} width="3" height="16" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.6" rx="1" />
+    ))}
+    <path d="M212,101 L338,90" stroke="#f8fafc" strokeWidth="3" />
+    <path d="M212,109 L338,98" stroke="#f8fafc" strokeWidth="3" />
+
+    {/* Farmhouse */}
+    <rect x="270" y="70" width="60" height="40" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" rx="2" />
+    <polygon points="265,70 335,70 300,42" fill="#15803d" />
+    <rect x="291" y="40" width="8" height="10" fill="#78716c" />
+    <rect x="293" y="88" width="14" height="22" fill="#166534" rx="1" />
+    <rect x="278" y="80" width="10" height="10" fill="#bfdbfe" stroke="#94a3b8" strokeWidth="0.6" />
+    <rect x="312" y="80" width="10" height="10" fill="#bfdbfe" stroke="#94a3b8" strokeWidth="0.6" />
+
+    {/* Trees beside the house */}
+    <rect x="345" y="80" width="4" height="30" fill="#78716c" />
+    <ellipse cx="347" cy="68" rx="18" ry="20" fill="#16a34a" />
+    <ellipse cx="337" cy="78" rx="13" ry="14" fill="#15803d" />
+    <rect x="372" y="84" width="3" height="26" fill="#78716c" />
+    <ellipse cx="373" cy="74" rx="15" ry="17" fill="#16a34a" />
+
+    {/* Cows grazing in the field */}
+    <use href="#cowGraze" transform="translate(15,95) scale(0.95)" />
+    <use href="#cowStand" transform="translate(150,118) scale(0.45)" />
+    <use href="#cowStand" transform="translate(295,90) scale(0.85)" />
   </svg>
 );
 

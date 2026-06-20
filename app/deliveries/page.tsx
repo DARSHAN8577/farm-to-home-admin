@@ -130,9 +130,12 @@ export default function DeliveriesPage() {
     const [historyRecords, setHistoryRecords] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
-    const today = new Date().toISOString().split("T")[0];
-    // Friendly date string for the summary card (Feature 2) — purely cosmetic
-    const formattedToday = new Date().toLocaleDateString("en-IN", {
+    // `today` is now state (not a plain const) so the midnight-rollover timer
+    // further down can flip it forward without needing a page reload.
+    const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+    // Friendly date string for the summary card — derived from `today` so it
+    // stays in sync automatically whenever `today` rolls over.
+    const formattedToday = new Date(`${today}T00:00:00`).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -264,6 +267,33 @@ export default function DeliveriesPage() {
             await Promise.all([fetchCustomers(), fetchTodayDeliveries()]);
             setLoaded(true);
         })();
+        // Re-runs on mount AND whenever `today` flips at midnight, so an
+        // already-open tab pulls fresh customers + a fresh (empty) delivery
+        // map for the new date automatically.
+    }, [today]);
+
+    // ── Automatic midnight rollover ─────────────────────────────────────────────
+    // Schedules a timer for the next local midnight, flips `today` forward
+    // (a couple of seconds after 12:00 AM to be safe), and reschedules itself
+    // for the following day. This never touches old delivery_date rows — it
+    // only changes which date Summary/Mark are currently querying.
+    useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        const scheduleNextRollover = () => {
+            const now = new Date();
+            const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
+            const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+            timeoutId = setTimeout(() => {
+                setToday(new Date().toISOString().split("T")[0]);
+                scheduleNextRollover();
+            }, msUntilMidnight);
+        };
+
+        scheduleNextRollover();
+
+        return () => clearTimeout(timeoutId);
     }, []);
 
     // ── Helpers to derive per-customer delivery state ─────────────────────────

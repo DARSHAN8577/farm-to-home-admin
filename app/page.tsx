@@ -287,6 +287,8 @@ export default function DashboardPage() {
       .limit(1)
       .maybeSingle();
 
+    console.log("Delivery Status:", data, error);
+
     if (!error && data) {
       setDeliveryStatus(data as DeliveryStatusRow);
     }

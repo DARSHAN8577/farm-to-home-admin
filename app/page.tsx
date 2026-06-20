@@ -518,15 +518,15 @@ export default function DashboardPage() {
         {/* ── Delivery Mode ── */}
         <section className="mb-6">
           <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className={`rounded-xl p-2.5 ${deliveryStatus?.is_delivery_started ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className={`flex-shrink-0 rounded-xl p-2.5 ${deliveryStatus?.is_delivery_started ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"}`}>
                   <TruckIcon />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="font-bold text-gray-800 text-sm">Delivery Mode</p>
                   <p className="text-xs text-gray-500">
-                    Notify all customers when milk is out
+                    Notify customers when milk is out
                   </p>
                 </div>
               </div>
@@ -534,16 +534,16 @@ export default function DashboardPage() {
                 onClick={() => setConfirmAction(deliveryStatus?.is_delivery_started ? "off" : "on")}
                 disabled={!deliveryStatus || deliveryLoading}
                 aria-label="Toggle delivery mode"
-                className={`relative w-24 h-10 rounded-full px-3 flex items-center transition-colors duration-300 disabled:opacity-50 ${deliveryStatus?.is_delivery_started
+                className={`relative flex-shrink-0 w-16 h-7 rounded-full px-1.5 flex items-center transition-colors duration-300 disabled:opacity-50 ${deliveryStatus?.is_delivery_started
                     ? "bg-green-500 justify-start"
                     : "bg-red-500 justify-end"
                   }`}
               >
-                <span className="text-[11px] font-bold text-white tracking-wide">
+                <span className="text-[9px] font-bold text-white tracking-wide">
                   {deliveryStatus?.is_delivery_started ? "ON" : "OFF"}
                 </span>
                 <span
-                  className={`absolute top-1 left-1 w-8 h-8 rounded-full shadow-md bg-gradient-to-br from-white to-gray-200 transition-transform duration-300 ${deliveryStatus?.is_delivery_started ? "translate-x-[56px]" : "translate-x-0"
+                  className={`absolute top-1 left-1 w-5 h-5 rounded-full shadow-md bg-gradient-to-br from-white to-gray-200 transition-transform duration-300 ${deliveryStatus?.is_delivery_started ? "translate-x-9" : "translate-x-0"
                     }`}
                 />
               </button>

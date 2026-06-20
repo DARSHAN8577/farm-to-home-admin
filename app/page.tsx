@@ -145,6 +145,13 @@ type NotifItem = {
 
 type NavTab = "dashboard" | "customers" | "deliveries" | "bills";
 
+// ── Delivery status row type ──────────────────────────────────────────────────
+type DeliveryStatusRow = {
+  id: string;
+  is_delivery_started: boolean;
+  message: string;
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState({
     customers: 0,
@@ -164,6 +171,10 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<NotifItem[]>([]);
   const bellRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+
+  // ── Delivery Mode state ───────────────────────────────────────────────────
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatusRow | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
 
   // Close popup when clicking outside (checks both bell and popup)
   useEffect(() => {
@@ -268,7 +279,47 @@ export default function DashboardPage() {
     setLoaded(true);
   };
 
-  useEffect(() => { fetchDashboard(); }, []);
+  // ── Fetch the single delivery_status row (no hardcoded id) ───────────────
+  const fetchDeliveryStatus = async () => {
+    const { data, error } = await supabase
+      .from("delivery_status")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data) {
+      setDeliveryStatus(data as DeliveryStatusRow);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+    fetchDeliveryStatus();
+  }, []);
+
+  // ── Toggle Delivery Mode — broadcasts to all customers in the Android app ─
+  const toggleDelivery = async () => {
+    if (!deliveryStatus || deliveryLoading) return;
+    const newStatus = !deliveryStatus.is_delivery_started;
+
+    setDeliveryLoading(true);
+    // Optimistic update
+    setDeliveryStatus({ ...deliveryStatus, is_delivery_started: newStatus });
+
+    const { error } = await supabase
+      .from("delivery_status")
+      .update({
+        is_delivery_started: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", deliveryStatus.id);
+
+    if (error) {
+      // Revert on failure
+      setDeliveryStatus({ ...deliveryStatus, is_delivery_started: !newStatus });
+    }
+    setDeliveryLoading(false);
+  };
 
   // ── Badge count clears once user opens the panel ─────────────────────────
   const totalPending = stats.pauseRequests + stats.extraRequests;
@@ -460,6 +511,35 @@ export default function DashboardPage() {
 
       {/* ── Scrollable Content ── */}
       <main className="relative z-10 bg-white rounded-t-3xl -mt-3 px-4 pt-5 pb-28 min-h-screen">
+
+        {/* ── Delivery Mode ── */}
+        <section className="mb-6">
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`rounded-xl p-2.5 ${deliveryStatus?.is_delivery_started ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"}`}>
+                  <TruckIcon />
+                </span>
+                <div>
+                  <p className="font-bold text-gray-800 text-sm">Delivery Mode</p>
+                  <p className="text-xs text-gray-500">
+                    Notify all customers when milk is out
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleDelivery}
+                disabled={!deliveryStatus || deliveryLoading}
+                className={`px-5 py-2 rounded-full font-semibold text-sm transition-colors duration-150 disabled:opacity-50 ${deliveryStatus?.is_delivery_started
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 text-gray-700"
+                  }`}
+              >
+                {deliveryStatus?.is_delivery_started ? "ON" : "OFF"}
+              </button>
+            </div>
+          </div>
+        </section>
 
         {/* ── Quick Actions ── */}
         <section className="mb-6">

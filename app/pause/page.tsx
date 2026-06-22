@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sendNotification } from "@/lib/sendNotification";
 
 const ChevronLeftIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -136,11 +135,17 @@ export default function PausePage() {
             .single();
 
         if (customer.data?.fcm_token) {
-            await sendNotification(
-                customer.data.fcm_token,
-                "Pause Request Approved",
-                "Your milk pause request has been approved."
-            );
+            await fetch("/api/send-notification", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    token: customer.data.fcm_token,
+                    title: "Pause Request Approved",
+                    body: "Your milk pause request has been approved.",
+                }),
+            });
         }
 
         fetchPauses();
@@ -159,11 +164,17 @@ export default function PausePage() {
             .single();
 
         if (customer.data?.fcm_token) {
-            await sendNotification(
-                customer.data.fcm_token,
-                "Pause Request Rejected",
-                "Your milk pause request has been rejected."
-            );
+            await fetch("/api/send-notification", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    token: customer.data.fcm_token,
+                    title: "Pause Request Rejected",
+                    body: "Your milk pause request has been rejected.",
+                }),
+            });
         }
 
         fetchPauses();

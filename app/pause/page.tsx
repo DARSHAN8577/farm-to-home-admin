@@ -95,7 +95,7 @@ type PauseType = {
     customers: {
         customer_code: string;
         name: string;
-    }[];
+    };
 };
 
 export default function PausePage() {
@@ -118,7 +118,7 @@ export default function PausePage() {
                 )
             `);
         if (error) console.error("fetchPauses error:", error);
-        if (!error && data) setPauses(data as PauseType[]);
+        if (!error && data) setPauses(data as unknown as PauseType[]);
         setLoaded(true);
     };
 
@@ -169,7 +169,6 @@ export default function PausePage() {
 
             <header className="sticky top-0 z-30 bg-gradient-to-b from-green-50 to-green-100">
                 <div className="flex items-center justify-between px-4 pt-4 pb-1">
-
                     <div className="flex items-center gap-2">
                         <a href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm border border-green-200 text-green-600" aria-label="Back to dashboard">
                             <ChevronLeftIcon />
@@ -179,12 +178,10 @@ export default function PausePage() {
                             <p className="text-gray-500 text-xs">{pendingCount} pending</p>
                         </div>
                     </div>
-
                     <div className="bg-white rounded-full shadow-sm border border-amber-200 px-3 py-1.5 flex items-center gap-1.5 text-amber-500">
                         <PauseSmallIcon />
                         <span className="text-xs font-bold">{pauses.length}</span>
                     </div>
-
                 </div>
                 <div className="mt-1 -mb-1">
                     <FarmLandscape />
@@ -216,7 +213,7 @@ export default function PausePage() {
                     <div className="flex flex-col gap-3">
 
                         {pauses.map((pause, i) => {
-                            const customer = pause.customers?.[0];
+                            const customer = pause.customers;
                             return (
                                 <div
                                     key={pause.id}

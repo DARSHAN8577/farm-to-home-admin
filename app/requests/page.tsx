@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { sendNotification } from "@/lib/sendNotification";
 
 type RequestType = {
     id: string;
@@ -153,11 +152,17 @@ export default function RequestsPage() {
             .single();
 
         if (customer.data?.fcm_token) {
-            await sendNotification(
-                customer.data.fcm_token,
-                "Extra Milk Approved",
-                "Your extra milk request has been approved."
-            );
+            await fetch("/api/send-notification", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    token: customer.data.fcm_token,
+                    title: "Extra Milk Approved",
+                    body: "Your extra milk request has been approved.",
+                }),
+            });
         }
 
         fetchRequests();
@@ -176,11 +181,17 @@ export default function RequestsPage() {
             .single();
 
         if (customer.data?.fcm_token) {
-            await sendNotification(
-                customer.data.fcm_token,
-                "Extra Milk Rejected",
-                "Your extra milk request has been rejected."
-            );
+            await fetch("/api/send-notification", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    token: customer.data.fcm_token,
+                    title: "Extra Milk Rejected",
+                    body: "Your extra milk request has been rejected.",
+                }),
+            });
         }
 
         fetchRequests();
@@ -198,7 +209,6 @@ export default function RequestsPage() {
         fetchRequests();
     }, []);
 
-    // Filter requests based on active filter
     const filteredRequests = requests.filter((r) => {
         if (filter === "all") return true;
         return r.status === filter;
@@ -206,7 +216,6 @@ export default function RequestsPage() {
 
     const pendingCount = requests.filter((r) => r.status === "pending").length;
 
-    // Status badge styling
     const statusStyles = {
         pending: "bg-blue-50 text-blue-700 border-blue-100",
         approved: "bg-green-50 text-green-700 border-green-100",

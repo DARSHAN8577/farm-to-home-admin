@@ -3,18 +3,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-// ── Inline SVG Icons (matching home dashboard / deliveries / bills icon language) ──
 const ChevronLeftIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <polyline points="15 18 9 12 15 6" />
     </svg>
 );
+
 const PauseSmallIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
         <rect x="6" y="4" width="4" height="16" rx="1" />
         <rect x="14" y="4" width="4" height="16" rx="1" />
     </svg>
 );
+
 const CalendarIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -23,23 +24,27 @@ const CalendarIcon = () => (
         <line x1="3" y1="10" x2="21" y2="10" />
     </svg>
 );
+
 const TagIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <path d="M20.59 13.41L11 21l-9-9 8.59-8.59A2 2 0 0 1 12 3h7a2 2 0 0 1 2 2v7a2 2 0 0 1-.41 1.41z" />
         <circle cx="14.5" cy="7.5" r="0.5" fill="currentColor" />
     </svg>
 );
+
 const CheckIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <polyline points="20 6 9 17 4 12" />
     </svg>
 );
+
 const XSmallIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
 );
+
 const TrashIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <polyline points="3 6 5 6 21 6" />
@@ -49,7 +54,6 @@ const TrashIcon = () => (
     </svg>
 );
 
-// ── Farm Landscape SVG Background (same as home dashboard / deliveries / bills) ──
 const FarmLandscape = () => (
     <svg viewBox="0 0 390 120" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="xMidYMax meet">
         <defs>
@@ -102,21 +106,19 @@ export default function PausePage() {
         const { data, error } = await supabase
             .from("pause_requests")
             .select(`
-        id,
-        start_date,
-        end_date,
-        pause_type,
-        status,
-        customer_id,
-        customers (
-          customer_code,
-          name
-        )
-      `);
-
-        if (!error && data) {
-            setPauses(data as PauseType[]);
-        }
+                id,
+                start_date,
+                end_date,
+                pause_type,
+                status,
+                customer_id,
+                customers!pause_requests_customer_id_fkey (
+                    customer_code,
+                    name
+                )
+            `);
+        if (error) console.error("fetchPauses error:", error);
+        if (!error && data) setPauses(data as PauseType[]);
         setLoaded(true);
     };
 
@@ -135,11 +137,8 @@ export default function PausePage() {
         fetchPauses();
     };
 
-    useEffect(() => {
-        fetchPauses();
-    }, []);
+    useEffect(() => { fetchPauses(); }, []);
 
-    // ── Summary stats ─────────────────────────────────────────────────────────
     const pendingCount = pauses.filter((p) => p.status === "pending").length;
     const approvedCount = pauses.filter((p) => p.status === "approved").length;
     const rejectedCount = pauses.filter((p) => p.status === "rejected").length;
@@ -167,15 +166,12 @@ export default function PausePage() {
 
     return (
         <div className="min-h-screen bg-white font-sans antialiased">
-            {/* ── Sticky Header ── */}
+
             <header className="sticky top-0 z-30 bg-gradient-to-b from-green-50 to-green-100">
                 <div className="flex items-center justify-between px-4 pt-4 pb-1">
+
                     <div className="flex items-center gap-2">
-                        <a
-                            href="/"
-                            className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm border border-green-200 text-green-600"
-                            aria-label="Back to dashboard"
-                        >
+                        <a href="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm border border-green-200 text-green-600" aria-label="Back to dashboard">
                             <ChevronLeftIcon />
                         </a>
                         <div>
@@ -188,16 +184,15 @@ export default function PausePage() {
                         <PauseSmallIcon />
                         <span className="text-xs font-bold">{pauses.length}</span>
                     </div>
-                </div>
 
+                </div>
                 <div className="mt-1 -mb-1">
                     <FarmLandscape />
                 </div>
             </header>
 
-            {/* ── Scrollable Content ── */}
             <main className="relative z-10 bg-white rounded-t-3xl -mt-3 px-4 pt-5 pb-10 min-h-screen">
-                {/* ── Summary strip ── */}
+
                 <section className="mb-6">
                     <p className="text-sm font-bold text-gray-800 mb-3">Overview</p>
                     <div className="grid grid-cols-3 gap-3">
@@ -216,38 +211,31 @@ export default function PausePage() {
                     </div>
                 </section>
 
-                {/* ── Pause request list ── */}
                 <section>
                     <p className="text-sm font-bold text-gray-800 mb-3">All Requests</p>
                     <div className="flex flex-col gap-3">
+
                         {pauses.map((pause, i) => {
                             const customer = pause.customers?.[0];
-
                             return (
                                 <div
                                     key={pause.id}
-                                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4
-                    transition-all duration-200
-                    ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
+                                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
                                     style={{ transitionDelay: `${i * 40}ms`, transition: "opacity 0.3s ease, transform 0.3s ease" }}
                                 >
-                                    {/* ── Top row: name + ID + status dot ── */}
                                     <div className="flex items-center gap-3 mb-3">
                                         <span className={`flex-shrink-0 w-2.5 h-2.5 rounded-full ${statusDot[pause.status]}`} />
-
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-900 truncate">
                                                 {customer?.name || "Unknown customer"}
                                             </p>
                                             <p className="text-xs text-gray-400">ID #{customer?.customer_code || "—"}</p>
                                         </div>
-
                                         <span className={`text-[11px] font-semibold rounded-full px-2.5 py-1 ${statusBadge[pause.status]}`}>
                                             {statusLabel[pause.status] || pause.status}
                                         </span>
                                     </div>
 
-                                    {/* ── Details chips: from / to / type ── */}
                                     <div className="flex flex-wrap gap-2 mb-3">
                                         <span className="flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium rounded-full px-3 py-1.5">
                                             <CalendarIcon /> {formatDate(pause.start_date)} → {formatDate(pause.end_date)}
@@ -257,7 +245,6 @@ export default function PausePage() {
                                         </span>
                                     </div>
 
-                                    {/* ── Actions ── */}
                                     <div className="flex items-center gap-2">
                                         {pause.status === "pending" && (
                                             <>
@@ -275,11 +262,9 @@ export default function PausePage() {
                                                 </button>
                                             </>
                                         )}
-
                                         <button
                                             onClick={() => deletePause(pause.id)}
-                                            className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-500 active:bg-red-100 transition-colors duration-100
-                        ${pause.status === "pending" ? "px-3" : "flex-1"}`}
+                                            className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-500 active:bg-red-100 transition-colors duration-100 ${pause.status === "pending" ? "px-3" : "flex-1"}`}
                                         >
                                             <TrashIcon /> {pause.status === "pending" ? "" : "Delete"}
                                         </button>
@@ -297,8 +282,10 @@ export default function PausePage() {
                                 <p className="text-xs text-gray-400 mt-1">Customer pause requests will appear here.</p>
                             </div>
                         )}
+
                     </div>
                 </section>
+
             </main>
         </div>
     );

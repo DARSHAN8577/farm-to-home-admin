@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-// ── Inline SVG Icons (matching home dashboard icon language) ─────────────────
 const ChevronDownIcon = ({ open }: { open: boolean }) => (
     <svg
         viewBox="0 0 24 24"
@@ -62,14 +61,12 @@ const ChevronLeftIcon = () => (
         <polyline points="15 18 9 12 15 6" />
     </svg>
 );
-// ── New icon for summary card date chip ───────────────────────────────────────
 const CalendarIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
         <rect x="3" y="4" width="18" height="18" rx="2" />
         <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
 );
-// ── New icon for the History tab ──────────────────────────────────────────────
 const HistoryIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
         <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
@@ -77,14 +74,12 @@ const HistoryIcon = () => (
         <path d="M12 7v5l3 3" />
     </svg>
 );
-// ── New icon for "select customer" rows in the History tab ───────────────────
 const ChevronRightIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
         <polyline points="9 18 15 12 9 6" />
     </svg>
 );
 
-// ── Farm Landscape SVG Background (same as home dashboard) ───────────────────
 const FarmLandscape = () => (
     <svg viewBox="0 0 390 120" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="xMidYMax meet">
         <defs>
@@ -121,20 +116,12 @@ export default function DeliveriesPage() {
     const [todayDeliveries, setTodayDeliveries] = useState<any>({});
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [loaded, setLoaded] = useState(false);
-
-    // ── Three-tab layout: Summary / Mark / History ─────────────────────────────
     const [activeTab, setActiveTab] = useState<"summary" | "mark" | "history">("mark");
-
-    // ── History tab state: which customer is selected + their full record set ─
     const [historyCustomerId, setHistoryCustomerId] = useState<string | null>(null);
     const [historyRecords, setHistoryRecords] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
-
-    // `today` is now state (not a plain const) so the midnight-rollover timer
-    // further down can flip it forward without needing a page reload.
     const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
-    // Friendly date string for the summary card — derived from `today` so it
-    // stays in sync automatically whenever `today` rolls over.
+
     const formattedToday = new Date(`${today}T00:00:00`).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
@@ -142,100 +129,78 @@ export default function DeliveriesPage() {
     });
 
     const fetchCustomers = async () => {
-        const { data } = await supabase
-            .from("customers")
-            .select("*")
-            .eq("is_active", true);
-
+        const { data } = await supabase.from("customers").select("*").eq("is_active", true);
         if (data) setCustomers(data);
     };
 
     const fetchTodayDeliveries = async () => {
-        const { data } = await supabase
-            .from("deliveries")
-            .select("*")
-            .eq("delivery_date", today);
-
+        const { data } = await supabase.from("deliveries").select("*").eq("delivery_date", today);
         const map: any = {};
-        data?.forEach((item) => {
-            map[item.customer_id] = item;
-        });
-
+        data?.forEach((item) => { map[item.customer_id] = item; });
         setTodayDeliveries(map);
+    };
+
+    const sendDeliveryNotification = async () => {
+        await fetch("/api/send-notification-all", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                title: "Farm To Home",
+                body: "Your milk is on the way 🚚 Delivery will arrive in 1 hour.",
+            }),
+        });
     };
 
     const markMorning = async (customer: any) => {
         const existing = todayDeliveries[customer.id];
-
         if (!existing) {
-            await supabase.from("deliveries").insert([
-                {
-                    customer_id: customer.id,
-                    delivery_date: today,
-                    morning_liters: customer.morning_liters,
-                    evening_liters: customer.evening_liters,
-                    morning_status: "delivered",
-                    evening_status: "pending",
-                    total_liters: customer.morning_liters,
-                    total_amount: customer.morning_liters * customer.price_per_liter,
-                },
-            ]);
+            await supabase.from("deliveries").insert([{
+                customer_id: customer.id,
+                delivery_date: today,
+                morning_liters: customer.morning_liters,
+                evening_liters: customer.evening_liters,
+                morning_status: "delivered",
+                evening_status: "pending",
+                total_liters: customer.morning_liters,
+                total_amount: customer.morning_liters * customer.price_per_liter,
+            }]);
         } else {
-            await supabase
-                .from("deliveries")
-                .update({ morning_status: "delivered" })
-                .eq("id", existing.id);
+            await supabase.from("deliveries").update({ morning_status: "delivered" }).eq("id", existing.id);
         }
-
+        await sendDeliveryNotification();
         fetchTodayDeliveries();
     };
 
     const markEvening = async (customer: any) => {
         const existing = todayDeliveries[customer.id];
-
         if (!existing) {
-            await supabase.from("deliveries").insert([
-                {
-                    customer_id: customer.id,
-                    delivery_date: today,
-                    morning_liters: customer.morning_liters,
-                    evening_liters: customer.evening_liters,
-                    morning_status: "pending",
-                    evening_status: "delivered",
-                    total_liters: customer.evening_liters,
-                    total_amount: customer.evening_liters * customer.price_per_liter,
-                },
-            ]);
+            await supabase.from("deliveries").insert([{
+                customer_id: customer.id,
+                delivery_date: today,
+                morning_liters: customer.morning_liters,
+                evening_liters: customer.evening_liters,
+                morning_status: "pending",
+                evening_status: "delivered",
+                total_liters: customer.evening_liters,
+                total_amount: customer.evening_liters * customer.price_per_liter,
+            }]);
         } else {
-            await supabase
-                .from("deliveries")
-                .update({ evening_status: "delivered" })
-                .eq("id", existing.id);
+            await supabase.from("deliveries").update({ evening_status: "delivered" }).eq("id", existing.id);
         }
-
+        await sendDeliveryNotification();
         fetchTodayDeliveries();
     };
 
     const undoMorning = async (deliveryId: string) => {
-        await supabase
-            .from("deliveries")
-            .update({ morning_status: "pending" })
-            .eq("id", deliveryId);
-
+        await supabase.from("deliveries").update({ morning_status: "pending" }).eq("id", deliveryId);
         fetchTodayDeliveries();
     };
 
     const undoEvening = async (deliveryId: string) => {
-        await supabase
-            .from("deliveries")
-            .update({ evening_status: "pending" })
-            .eq("id", deliveryId);
-
+        await supabase.from("deliveries").update({ evening_status: "pending" }).eq("id", deliveryId);
         fetchTodayDeliveries();
     };
 
-    // ── History tab: fetch a single customer's full delivery record set ───────
-    // (all delivery_date rows for that customer — never filtered to "today")
     const fetchCustomerHistory = async (customerId: string) => {
         setHistoryLoading(true);
         const { data } = await supabase
@@ -243,7 +208,6 @@ export default function DeliveriesPage() {
             .select("*")
             .eq("customer_id", customerId)
             .order("delivery_date", { ascending: false });
-
         setHistoryRecords(data || []);
         setHistoryLoading(false);
     };
@@ -267,91 +231,50 @@ export default function DeliveriesPage() {
             await Promise.all([fetchCustomers(), fetchTodayDeliveries()]);
             setLoaded(true);
         })();
-        // Re-runs on mount AND whenever `today` flips at midnight, so an
-        // already-open tab pulls fresh customers + a fresh (empty) delivery
-        // map for the new date automatically.
     }, [today]);
 
-    // ── Automatic midnight rollover ─────────────────────────────────────────────
-    // Schedules a timer for the next local midnight, flips `today` forward
-    // (a couple of seconds after 12:00 AM to be safe), and reschedules itself
-    // for the following day. This never touches old delivery_date rows — it
-    // only changes which date Summary/Mark are currently querying.
     useEffect(() => {
         let timeoutId: ReturnType<typeof setTimeout>;
-
         const scheduleNextRollover = () => {
             const now = new Date();
             const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
             const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-
             timeoutId = setTimeout(() => {
                 setToday(new Date().toISOString().split("T")[0]);
                 scheduleNextRollover();
             }, msUntilMidnight);
         };
-
         scheduleNextRollover();
-
         return () => clearTimeout(timeoutId);
     }, []);
 
-    // ── Helpers to derive per-customer delivery state ─────────────────────────
-    // getCustomerStats centralizes the math used by both the individual cards
-    // and the new Feature 2 summary card / customer-wise breakdown.
-    // Daily reset rule: if a customer has NO delivery row for "today", they are
-    // automatically treated as status = "not_collected" (old days are never
-    // touched — they simply live under their own delivery_date).
     const getCustomerStats = (customer: any) => {
         const delivery = todayDeliveries[customer.id];
         const morningLiters = Number(customer.morning_liters) || 0;
         const eveningLiters = Number(customer.evening_liters) || 0;
         const totalLiters = morningLiters + eveningLiters;
         const price = Number(customer.price_per_liter) || 0;
-
         const hasMorning = morningLiters > 0;
         const hasEvening = eveningLiters > 0;
-
         const morningStatus = hasMorning ? delivery?.morning_status ?? (delivery ? "pending" : "not_collected") : null;
         const eveningStatus = hasEvening ? delivery?.evening_status ?? (delivery ? "pending" : "not_collected") : null;
-
         let deliveredLiters = 0;
         if (hasMorning && morningStatus === "delivered") deliveredLiters += morningLiters;
         if (hasEvening && eveningStatus === "delivered") deliveredLiters += eveningLiters;
-
         const deliveredAmount = deliveredLiters * price;
         const pendingAmount = (totalLiters - deliveredLiters) * price;
-
         let status: "delivered" | "partial" | "pending" | "not_collected";
-
         if (!delivery) {
             status = "not_collected";
         } else {
             const relevantStatuses = [morningStatus, eveningStatus].filter(Boolean) as string[];
-
-            if (relevantStatuses.length === 0) {
-                status = "delivered";
-            } else if (relevantStatuses.every((s) => s === "delivered")) {
-                status = "delivered";
-            } else if (relevantStatuses.every((s) => s === "not_collected")) {
-                status = "not_collected";
-            } else if (relevantStatuses.some((s) => s === "delivered")) {
-                status = "partial";
-            } else {
-                status = "pending";
-            }
+            if (relevantStatuses.length === 0) status = "delivered";
+            else if (relevantStatuses.every((s) => s === "delivered")) status = "delivered";
+            else if (relevantStatuses.every((s) => s === "not_collected")) status = "not_collected";
+            else if (relevantStatuses.some((s) => s === "delivered")) status = "partial";
+            else status = "pending";
         }
-
-        return {
-            morningLiters,
-            eveningLiters,
-            totalLiters,
-            price,
-            deliveredLiters,
-            deliveredAmount,
-            pendingAmount,
-            status,
-        };
+        return { morningLiters, eveningLiters, totalLiters, price, deliveredLiters, deliveredAmount, pendingAmount, status };
     };
 
     const getStatus = (customer: any) => getCustomerStats(customer).status;
@@ -377,39 +300,24 @@ export default function DeliveriesPage() {
 
     const deliveredCount = customers.filter((c) => getStatus(c) === "delivered").length;
 
-    // ── History tab: group the selected customer's records by calendar month ──
-    // Old days are never overwritten — each row keeps living under its own
-    // delivery_date, this just groups them for a lifetime/monthly view.
     const getMonthlyHistory = () => {
         const map: Record<string, { liters: number; amount: number; days: number; label: string }> = {};
-
         historyRecords.forEach((r) => {
             const d = new Date(r.delivery_date);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
             if (!map[key]) {
-                map[key] = {
-                    liters: 0,
-                    amount: 0,
-                    days: 0,
-                    label: d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
-                };
+                map[key] = { liters: 0, amount: 0, days: 0, label: d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) };
             }
-
             map[key].liters += Number(r.total_liters) || 0;
             map[key].amount += Number(r.total_amount) || 0;
             map[key].days += 1;
         });
-
-        return Object.entries(map)
-            .sort(([a], [b]) => (a < b ? 1 : -1))
-            .map(([key, v]) => ({ key, ...v }));
+        return Object.entries(map).sort(([a], [b]) => (a < b ? 1 : -1)).map(([key, v]) => ({ key, ...v }));
     };
 
     const monthlyHistory = getMonthlyHistory();
     const selectedHistoryCustomer = customers.find((c) => c.id === historyCustomerId) || null;
 
-    // ── FEATURE 2: Aggregate totals for the summary card ───────────────────────
     const summaryStats = customers.reduce(
         (acc, customer) => {
             const s = getCustomerStats(customer);
@@ -424,8 +332,9 @@ export default function DeliveriesPage() {
 
     return (
         <div className="min-h-screen bg-white font-sans antialiased">
+
             {/* ── Sticky Header ── */}
-            <header className="sticky top-0 z-30 bg-gradient-to-b from-green-50 to-green-100">
+            <div className="sticky top-0 z-30 bg-gradient-to-b from-green-50 to-green-100">
                 <div className="flex items-center justify-between px-4 pt-4 pb-1">
                     <div className="flex items-center gap-2">
                         <a
@@ -437,52 +346,45 @@ export default function DeliveriesPage() {
                         </a>
                         <div>
                             <h1 className="text-gray-900 font-bold text-base leading-tight">Today Deliveries</h1>
-                            <p className="text-gray-500 text-xs">
-                                {deliveredCount}/{customers.length} done
-                            </p>
+                            <p className="text-gray-500 text-xs">{deliveredCount}/{customers.length} done</p>
                         </div>
                     </div>
-
                     <div className="bg-white rounded-full shadow-sm border border-green-200 px-3 py-1.5 flex items-center gap-1.5 text-green-600">
                         <TruckSmallIcon />
                         <span className="text-xs font-bold">{customers.length}</span>
                     </div>
                 </div>
-
                 <div className="mt-1 -mb-1">
                     <FarmLandscape />
                 </div>
-            </header>
+            </div>
 
             {/* ── Scrollable Content ── */}
             <main className="relative z-10 bg-white rounded-t-3xl -mt-3 px-4 pt-5 pb-10 min-h-screen">
 
-                {/* ── Tab switcher: Summary / Mark / History ── */}
+                {/* ── Tab switcher ── */}
                 <div className="flex items-center gap-1 bg-gray-100 rounded-full p-1 mb-4">
                     <button
                         onClick={() => setActiveTab("summary")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "summary" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"
-                            }`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "summary" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"}`}
                     >
                         <CalendarIcon /> Summary
                     </button>
                     <button
                         onClick={() => setActiveTab("mark")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "mark" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"
-                            }`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "mark" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"}`}
                     >
                         <CheckIcon /> Mark
                     </button>
                     <button
                         onClick={() => setActiveTab("history")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "history" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"
-                            }`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-semibold transition-colors duration-150 ${activeTab === "history" ? "bg-white text-green-600 shadow-sm" : "text-gray-400"}`}
                     >
                         <HistoryIcon /> History
                     </button>
                 </div>
 
-                {/* ── TAB 1: Full Daily Delivery Summary Card ── */}
+                {/* ── TAB 1: Summary ── */}
                 {activeTab === "summary" && (
                     <div className="mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -491,7 +393,6 @@ export default function DeliveriesPage() {
                                 <CalendarIcon /> {formattedToday}
                             </span>
                         </div>
-
                         <div className="grid grid-cols-2 gap-2 mb-4">
                             <div className="bg-gray-50 rounded-xl p-3">
                                 <p className="text-[11px] text-gray-400 font-medium">Total Customers</p>
@@ -514,20 +415,13 @@ export default function DeliveriesPage() {
                                 <p className="text-base font-bold text-red-600">₹{summaryStats.totalPending.toFixed(0)}</p>
                             </div>
                         </div>
-
-                        {/* Customer-wise breakdown */}
                         <div className="border-t border-gray-100 pt-3">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                                Customer-wise Breakdown
-                            </p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Customer-wise Breakdown</p>
                             <div className="flex flex-col gap-2">
                                 {customers.map((customer) => {
                                     const stats = getCustomerStats(customer);
                                     return (
-                                        <div
-                                            key={`summary-${customer.id}`}
-                                            className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5"
-                                        >
+                                        <div key={`summary-${customer.id}`} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5">
                                             <span className={`flex-shrink-0 w-2 h-2 rounded-full ${statusDot[stats.status]}`} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-bold text-gray-900 truncate">{customer.name}</p>
@@ -537,14 +431,11 @@ export default function DeliveriesPage() {
                                             </div>
                                             <div className="text-right flex-shrink-0">
                                                 <p className="text-xs font-bold text-gray-900">₹{stats.deliveredAmount.toFixed(0)}</p>
-                                                <p className={`text-[10px] font-semibold ${statusText[stats.status]}`}>
-                                                    {statusLabel[stats.status]}
-                                                </p>
+                                                <p className={`text-[10px] font-semibold ${statusText[stats.status]}`}>{statusLabel[stats.status]}</p>
                                             </div>
                                         </div>
                                     );
                                 })}
-
                                 {customers.length === 0 && (
                                     <p className="text-xs text-gray-400 text-center py-3">No active customers yet.</p>
                                 )}
@@ -553,14 +444,12 @@ export default function DeliveriesPage() {
                     </div>
                 )}
 
-                {/* ── TAB 3: Customer Lifetime / Monthly History ── */}
+                {/* ── TAB 3: History ── */}
                 {activeTab === "history" && (
                     <div className="mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                         {!selectedHistoryCustomer ? (
-                            <>
-                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                                    Select a Customer
-                                </p>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Select a Customer</p>
                                 <div className="flex flex-col gap-2">
                                     {customers.map((customer) => (
                                         <button
@@ -580,14 +469,13 @@ export default function DeliveriesPage() {
                                             </span>
                                         </button>
                                     ))}
-
                                     {customers.length === 0 && (
                                         <p className="text-xs text-gray-400 text-center py-3">No active customers yet.</p>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         ) : (
-                            <>
+                            <div>
                                 <div className="flex items-center gap-2 mb-4">
                                     <button
                                         onClick={closeCustomerHistory}
@@ -601,13 +489,10 @@ export default function DeliveriesPage() {
                                         <p className="text-xs text-gray-400">Lifetime delivery history, month by month</p>
                                     </div>
                                 </div>
-
                                 {historyLoading ? (
                                     <p className="text-xs text-gray-400 text-center py-8">Loading history...</p>
                                 ) : monthlyHistory.length === 0 ? (
-                                    <p className="text-xs text-gray-400 text-center py-8">
-                                        No delivery records found for this customer yet.
-                                    </p>
+                                    <p className="text-xs text-gray-400 text-center py-8">No delivery records found for this customer yet.</p>
                                 ) : (
                                     <div className="flex flex-col gap-2">
                                         {monthlyHistory.map((m) => (
@@ -623,12 +508,12 @@ export default function DeliveriesPage() {
                                         ))}
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
                     </div>
                 )}
 
-                {/* ── TAB 2: Mark Deliveries (existing expandable customer cards) ── */}
+                {/* ── TAB 2: Mark Deliveries ── */}
                 {activeTab === "mark" && (
                     <div className="flex flex-col gap-3">
                         {customers.map((customer, i) => {
@@ -641,36 +526,26 @@ export default function DeliveriesPage() {
                             return (
                                 <div
                                     key={customer.id}
-                                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden
-                  transition-all duration-200
-                  ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
+                                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
                                     style={{ transitionDelay: `${i * 40}ms`, transition: "opacity 0.3s ease, transform 0.3s ease" }}
                                 >
-                                    {/* ── Collapsed row: name + ID + status dot ── */}
                                     <button
                                         onClick={() => toggleExpand(customer.id)}
                                         className="w-full flex items-center gap-3 p-4 active:bg-gray-50 transition-colors duration-100"
                                     >
                                         <span className={`flex-shrink-0 w-2.5 h-2.5 rounded-full ${statusDot[status]}`} />
-
                                         <div className="flex-1 min-w-0 text-left">
                                             <p className="text-sm font-bold text-gray-900 truncate">{customer.name}</p>
                                             <p className="text-xs text-gray-400">ID #{customer.id}</p>
                                         </div>
-
-                                        <span className={`text-[11px] font-semibold ${statusText[status]}`}>
-                                            {statusLabel[status]}
-                                        </span>
-
+                                        <span className={`text-[11px] font-semibold ${statusText[status]}`}>{statusLabel[status]}</span>
                                         <span className="flex-shrink-0 text-gray-400">
                                             <ChevronDownIcon open={isOpen} />
                                         </span>
                                     </button>
 
-                                    {/* ── Expanded details + delivery buttons ── */}
                                     {isOpen && (
                                         <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
-                                            {/* Customer detail chips */}
                                             <div className="flex flex-wrap gap-2">
                                                 <span className="flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium rounded-full px-3 py-1.5">
                                                     <PhoneIcon /> {customer.phone}
@@ -690,29 +565,18 @@ export default function DeliveriesPage() {
                                                 </span>
                                             </div>
 
-                                            {/* Morning delivery */}
                                             {hasMorning && (
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => markMorning(customer)}
                                                         disabled={delivery?.morning_status === "delivered"}
-                                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-100
-                            ${delivery?.morning_status === "delivered"
-                                                                ? "bg-amber-50 text-amber-600 border border-amber-200"
-                                                                : "bg-green-600 text-white active:bg-green-700"
-                                                            }`}
+                                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-100 ${delivery?.morning_status === "delivered" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-green-600 text-white active:bg-green-700"}`}
                                                     >
-                                                        {delivery?.morning_status === "delivered" ? (
-                                                            <>
-                                                                <CheckIcon /> Morning Delivered
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <SunIcon /> Mark Morning
-                                                            </>
-                                                        )}
+                                                        {delivery?.morning_status === "delivered"
+                                                            ? <><CheckIcon /> Morning Delivered</>
+                                                            : <><SunIcon /> Mark Morning</>
+                                                        }
                                                     </button>
-
                                                     {delivery?.morning_status === "delivered" && (
                                                         <button
                                                             onClick={() => undoMorning(delivery.id)}
@@ -725,29 +589,18 @@ export default function DeliveriesPage() {
                                                 </div>
                                             )}
 
-                                            {/* Evening delivery */}
                                             {hasEvening && (
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => markEvening(customer)}
                                                         disabled={delivery?.evening_status === "delivered"}
-                                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-100
-                            ${delivery?.evening_status === "delivered"
-                                                                ? "bg-amber-50 text-amber-600 border border-amber-200"
-                                                                : "bg-blue-600 text-white active:bg-blue-700"
-                                                            }`}
+                                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-100 ${delivery?.evening_status === "delivered" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-blue-600 text-white active:bg-blue-700"}`}
                                                     >
-                                                        {delivery?.evening_status === "delivered" ? (
-                                                            <>
-                                                                <CheckIcon /> Evening Delivered
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <MoonIcon /> Mark Evening
-                                                            </>
-                                                        )}
+                                                        {delivery?.evening_status === "delivered"
+                                                            ? <><CheckIcon /> Evening Delivered</>
+                                                            : <><MoonIcon /> Mark Evening</>
+                                                        }
                                                     </button>
-
                                                     {delivery?.evening_status === "delivered" && (
                                                         <button
                                                             onClick={() => undoEvening(delivery.id)}

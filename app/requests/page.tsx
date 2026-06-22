@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { sendNotification } from "@/lib/sendNotification";
 
 type RequestType = {
     id: string;
@@ -139,19 +140,49 @@ export default function RequestsPage() {
         }
     };
 
-    const approveRequest = async (id: string) => {
+    const approveRequest = async (request: RequestType) => {
         await supabase
             .from("extra_requests")
             .update({ status: "approved" })
-            .eq("id", id);
+            .eq("id", request.id);
+
+        const customer = await supabase
+            .from("customers")
+            .select("fcm_token")
+            .eq("id", request.customer_id)
+            .single();
+
+        if (customer.data?.fcm_token) {
+            await sendNotification(
+                customer.data.fcm_token,
+                "Extra Milk Approved",
+                "Your extra milk request has been approved."
+            );
+        }
+
         fetchRequests();
     };
 
-    const rejectRequest = async (id: string) => {
+    const rejectRequest = async (request: RequestType) => {
         await supabase
             .from("extra_requests")
             .update({ status: "rejected" })
-            .eq("id", id);
+            .eq("id", request.id);
+
+        const customer = await supabase
+            .from("customers")
+            .select("fcm_token")
+            .eq("id", request.customer_id)
+            .single();
+
+        if (customer.data?.fcm_token) {
+            await sendNotification(
+                customer.data.fcm_token,
+                "Extra Milk Rejected",
+                "Your extra milk request has been rejected."
+            );
+        }
+
         fetchRequests();
     };
 
@@ -242,8 +273,8 @@ export default function RequestsPage() {
                                 key={status}
                                 onClick={() => setFilter(status as any)}
                                 className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all duration-200 ${filter === status
-                                        ? "bg-blue-500 text-white shadow-md"
-                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    ? "bg-blue-500 text-white shadow-md"
+                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                     }`}
                             >
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -320,14 +351,14 @@ export default function RequestsPage() {
                                         {request.status === "pending" && (
                                             <>
                                                 <button
-                                                    onClick={() => approveRequest(request.id)}
+                                                    onClick={() => approveRequest(request)}
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold text-sm transition-colors duration-200 active:scale-95"
                                                 >
                                                     <CheckIcon />
                                                     Approve
                                                 </button>
                                                 <button
-                                                    onClick={() => rejectRequest(request.id)}
+                                                    onClick={() => rejectRequest(request)}
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition-colors duration-200 active:scale-95"
                                                 >
                                                     <XIcon />

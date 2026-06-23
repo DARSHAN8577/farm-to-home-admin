@@ -8,7 +8,8 @@ export function middleware(request: NextRequest) {
     if (
         pathname.startsWith("/download") ||
         pathname.startsWith("/apk") ||
-        pathname.startsWith("/api")
+        pathname.startsWith("/api") ||
+        pathname.startsWith("/login")
     ) {
         return NextResponse.next();
     }

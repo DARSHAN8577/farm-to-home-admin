@@ -1,52 +1,68 @@
 export default function DownloadPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center p-6">
-            <div className="bg-white shadow-2xl rounded-3xl p-8 max-w-md w-full text-center border border-green-100">
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white flex items-center justify-center p-6">
+            <div className="relative w-[320px] h-[650px] bg-white rounded-[40px] shadow-2xl border-[8px] border-black overflow-hidden">
 
-                {/* Logo */}
-                <img
-                    src="/logo.png"
-                    alt="Farm To Home"
-                    className="w-28 h-28 mx-auto mb-4 rounded-full"
-                />
+                {/* Top notch */}
+                <div className="w-32 h-6 bg-black rounded-b-2xl mx-auto"></div>
 
-                {/* Title */}
-                <h1 className="text-3xl font-bold text-green-700 mb-2">
-                    Farm To Home
-                </h1>
+                <div className="p-6 text-center">
 
-                <p className="text-gray-600 mb-6">
-                    Fresh milk delivered to your home daily.
-                </p>
+                    {/* Logo */}
+                    <img
+                        src="/logo.png"
+                        alt="Farm To Home"
+                        className="w-20 h-20 mx-auto mb-4"
+                    />
 
-                {/* APK Download Button */}
-                <a
-                    href="https://farm-to-home-admin.vercel.app/apk/farm-to-home.apk"
-                    download
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl text-lg font-semibold inline-block transition"
-                >
-                    Download APK
-                </a>
+                    {/* Heading */}
+                    <h1 className="text-3xl font-bold text-black mb-2">
+                        Fresh Daily Milk App
+                    </h1>
 
-                {/* Version */}
-                <p className="mt-4 text-sm text-gray-500">
-                    Version 1.0.0
-                </p>
+                    <p className="text-sm text-gray-700 mb-5">
+                        <b>Direct Download:</b> This app is shared directly for a limited
+                        group of customers. Follow the steps below for safe installation.
+                    </p>
 
-                {/* Instructions */}
-                <div className="mt-6 text-left bg-green-50 p-4 rounded-xl">
-                    <h2 className="font-semibold text-green-700 mb-2">
-                        Installation Steps:
-                    </h2>
-                    <ul className="text-sm text-gray-700 space-y-2">
-                        <li>1. Click Download APK</li>
-                        <li>2. Open downloaded file</li>
-                        <li>3. Allow Install from Unknown Sources</li>
-                        <li>4. Install the app</li>
-                        <li>5. Login with your customer code</li>
-                    </ul>
+                    {/* Download button */}
+                    <a
+                        href="/apk/farm-to-home.apk"
+                        download
+                        className="block bg-green-400 hover:bg-green-500 text-white font-bold py-4 rounded-xl text-xl shadow-lg"
+                    >
+                        ⬇ DOWNLOAD APK (v1.0)
+                    </a>
+
+                    {/* Instructions */}
+                    <div className="mt-6 bg-gray-100 rounded-xl p-4">
+                        <h2 className="font-bold text-sm mb-4">
+                            INSTALLATION INSTRUCTIONS (4 Easy Steps)
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs text-left">
+                            <div className="bg-orange-50 p-2 rounded-lg">
+                                Step 1: Tap "DOWNLOAD"
+                            </div>
+
+                            <div className="bg-gray-50 p-2 rounded-lg">
+                                Step 2: Open settings and allow install
+                            </div>
+
+                            <div className="bg-green-50 p-2 rounded-lg">
+                                Step 3: Enable permission
+                            </div>
+
+                            <div className="bg-blue-50 p-2 rounded-lg">
+                                Step 4: Install and enjoy fresh milk!
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-6">
+                        Powered by Farm To Home
+                    </p>
                 </div>
-
             </div>
         </div>
     );
